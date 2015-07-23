@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <script src="/angular/angular.js"></script>
+    <style>
+        #map-canvas {
+              width: 80%;
+              height: 400px;
+              margin: 0 auto;
+              border: 1px solid red;
+        }
+    </style>
+    <script>
+        angular.module('myApp', []).directive('googleMap', function(){
+
+            return {
+
+                scope: {
+                    cities: '='
+                },
+
+                compile: function(element) {
+
+                    function loadScript() {
+                        var googleScript = document.createElement("script");
+                        googleScript.type = "text/javascript";
+                        googleScript.src = "https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&callback=test";
+                        document.body.appendChild(googleScript);
+                    }
+
+                    loadScript();
+
+                    window.test = function () {
+
+                        var myLatlng = new google.maps.LatLng(37.3761862,-122.03071970000002);
+                        var mapOptions = {
+                            zoom: 18,
+                            center: myLatlng
+                        };
+                        // make global marker
+                        var map = new google.maps.Map(element[0], mapOptions);
+
+                        // this one too marker
+                        var marker = new google.maps.Marker({
+                            position: myLatlng,
+                            map: map,
+                            title: 'Hello World!'
+                        });
+
+                    };
+
+                    return{
+                        pre: function(){},
+                        post: function(scope, element){
+                            element.on('click', function(){
+
+                                var locations = [];
+
+                                console.log(scope.cities[0]);
+
+                                // create locations array
+                                for(var i=0; i < scope.cities.length; i++){
+                                    locations[i] = [scope.cities[i].loc[0],scope.cities[i].loc[1]];
+                                }
+
+                                var bounds = new google.maps.LatLngBounds();
+                                var mapoptions = { zoom:18 }; //map options
+                                var map = new google.maps.Map(element[0], mapoptions);
+
+                                map.markers = [];
+
+                                for(var i=0;i< locations.length; i++)
+                                {
+
+                                    var poiLatLang = new google.maps.LatLng( locations[i][1], locations[i][0]);
+                                    //creating a new node
+                                    var marker = new google.maps.Marker({
+                                        position: poiLatLang ,
+                                        map: map
+                                    });
+
+                                    //Extends this bounds to contain the given point.
+                                    bounds.extend(marker.position);
+                                    map.markers.push(marker);
+                                }
+
+                                //Sets the viewport to contain the given bounds.
+                                map.fitBounds(bounds);
+                            });
+                        }
+                    }
+
+                }
+
+            }
+
+        }).controller('MyController', function($scope, $http){
+            $scope.message = 'Hello';
+            $http.get('/candidates').then(function(data){
+                console.log(data);
+                $scope.cities = data.data;
+            })
+        });
+    </script>
+  </head>
+  <body ng-controller="MyController">
+
+    <ul>
+        <li ng-repeat="city in cities">{{city.city}}</li>
+    </ul>
+    <div google-map id="map-canvas" cities="cities"></div>
+
+  </body>
+</html>
